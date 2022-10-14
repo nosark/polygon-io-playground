@@ -1,6 +1,18 @@
-use dotenv::dotenv;
+use dotenv;
 use reqwest::Client;
+use serde_json;
+use serde::{Serialize, Deserialize};
 
+#[derive(Deserialize)]
+struct Response<T> {
+    next_url: String,
+    results: Vec<T>,
+    exchange: i64,
+    id: String,
+    participant_timestamp: i64,
+    price_number: f64,
+    size: f64
+}
 
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
