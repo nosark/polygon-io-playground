@@ -1,17 +1,29 @@
-use dotenv;
+extern crate dotenv;
+
 use reqwest::Client;
 use serde_json;
 use serde::{Serialize, Deserialize};
+use rust_decimal_macros::dec;
+use rust_decimal::prelude::*;
 
-#[derive(Deserialize)]
-struct Response<T> {
-    next_url: String,
-    results: Vec<T>,
+
+#[derive(Deserialize, Debug)]
+struct Trade {
+    conditions: Vec<i64>,
     exchange: i64,
     id: String,
     participant_timestamp: i64,
-    price_number: f64,
-    size: f64
+    price: Decimal,
+    size: Decimal
+}
+
+
+#[derive(Deserialize, Debug)]
+struct Response {
+    results: Vec<Trade>,
+    status: String,
+    request_id: String,
+    next_url: String
 }
 
 #[tokio::main]
@@ -20,14 +32,15 @@ async fn main() -> Result<(), reqwest::Error> {
     let reqwest_client = Client::new();
     let coin_type = "X:BTC-USD";
     let base_url: String = "https://api.polygon.io/v3/trades/".to_owned();
-    let polygon_api_key = std::env::var("POLYGON_API_KEY").expect("Must load Polygon api key into environment!");
+    let polygon_api_key = std::env::var("POLYGON_API_KEY").expect("dotenv broke again... WTF");
     let complete_url = format!("{}{}?apiKey={}", base_url, coin_type, polygon_api_key);
     let res = reqwest_client.get(complete_url.clone())
         .send()
+        .await?
+        .json::<Response>()
         .await?;
-    let body = res.text().await?;
 
     println!("complete url {:?}" , complete_url.clone());
-    println!("response: {:?}", body);
+    println!("response: {:?}", res);
     Ok(())
 }
