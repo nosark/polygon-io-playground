@@ -4,6 +4,8 @@ use reqwest::Client;
 use rust_decimal::prelude::*;
 use serde::Deserialize;
 
+
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 struct Trade {
     conditions: Vec<i64>,
@@ -14,6 +16,7 @@ struct Trade {
     size: Decimal,
 }
 
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 struct PolygonResponse {
     results: Vec<Trade>,
@@ -21,14 +24,6 @@ struct PolygonResponse {
     request_id: String,
     next_url: Option<String>,
     previous_url: Option<String>,
-}
-
-/// This function will parse trades from our PolygonResponse from
-/// https://api.polygon.io/v3/trades/
-/// and take all the trades and put them into a shared Vec<Trade> that can be read and produce
-/// output by mutiple threads.
-fn parse_response_for_trades(res: &PolygonResponse) -> Vec<Trade> {
-    unimplemented!()
 }
 
 /// This function is used to make asynchronous requests to specified Polygon.io API endpoints
@@ -97,7 +92,7 @@ async fn main() -> Result<(), reqwest::Error> {
     )
     .await?;
 
-    println!("{:?}", deser_response.results[0]);
+    println!("{:?}", deser_response.next_url);
 
     Ok(())
 }
