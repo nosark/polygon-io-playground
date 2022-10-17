@@ -1,9 +1,10 @@
 extern crate dotenv;
 
+use std::collections::VecDeque;
+
 use reqwest::Client;
 use rust_decimal::prelude::*;
 use serde::Deserialize;
-
 
 #[allow(dead_code)]
 #[derive(Deserialize, Debug)]
@@ -52,7 +53,7 @@ async fn request_trade_data(
     order: &str,
     limit: &str,
     sort: &str,
-    api_key: String,
+    api_key: &String,
 ) -> Result<PolygonResponse, reqwest::Error> {
     let full_url = format!(
         "{}{}{}{}{}?apiKey={}",
@@ -75,24 +76,69 @@ async fn request_trade_data(
     }
 }
 
+async fn get_next_page_data(
+    client: &reqwest::Client,
+    page_url: &str,
+) -> Result<PolygonResponse, reqwest::Error> {
+    let res = client.get(page_url).send().await?;
+
+    match res.error_for_status() {
+        Ok(res) => {
+            let deserialized_res = res.json::<PolygonResponse>().await?;
+            return Ok(deserialized_res);
+        }
+
+        Err(err) => {
+            println!("Something went wrong, Error: {}", err);
+            return Err(err);
+        }
+    }
+}
+
 #[tokio::main]
 async fn main() -> Result<(), reqwest::Error> {
     dotenv::from_filename("config.env").ok();
     let reqwest_client = Client::new();
     let coin_type = "X:BTC-USD";
     let polygon_api_key = std::env::var("POLYGON_API_KEY").expect("dotenv broke again... WTF");
-    let deser_response = request_trade_data(
+    let deserialized_response = request_trade_data(
         &reqwest_client,
         "https://api.polygon.io/v3/trades/",
         coin_type,
         "",
         "",
         "",
-        polygon_api_key,
+        &polygon_api_key,
     )
     .await?;
 
-    println!("{:?}", deser_response.next_url);
+    //now push next url to page_gathering_queue
+    //
+    let mut page_gathering_queue = VecDeque::<String>::new();
+    page_gathering_queue.push_back(deserialized_response.next_url.clone().unwrap());
+
+    let mut page_count = 0;
+
+    while !page_gathering_queue.is_empty() {
+        // make the request
+        // do something with trades[todo]
+        // add next url to queue
+        // continue
+        page_count += 1;
+        let current_page_url = format!(
+            "{}&apiKey={}",
+            page_gathering_queue.pop_front().clone().unwrap(),
+            &polygon_api_key
+        );
+        let current_page_res = get_next_page_data(&reqwest_client, &current_page_url).await?;
+
+        println!(
+            "page count: {} \n  next_url: {}",
+            page_count, &current_page_url
+        );
+        // this is where we would manipulate trade data.
+        page_gathering_queue.push_back(current_page_res.next_url.clone().unwrap());
+    }
 
     Ok(())
 }
