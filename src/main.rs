@@ -1,6 +1,6 @@
 extern crate dotenv;
-use std::time::Duration;
 use std::collections::VecDeque;
+use std::time::Duration;
 
 use reqwest::Client;
 use rust_decimal::prelude::*;
@@ -28,41 +28,44 @@ struct PolygonResponse {
 }
 
 #[allow(dead_code)]
-struct CandleBar {
+struct Candle {
     open: Decimal,
     close: Decimal,
     low: Decimal,
-    high: Decimal
+    high: Decimal,
 }
 
+fn create_candle_from_trades(trades: Vec<Trade>) -> Candle {
+    let mut high = Decimal::MIN;
+    let mut low = Decimal::MAX;
 
-//things i need :
-//
-//time stamp,
-//
-//every trade evaluated within the 30 sec time window
-//
-//open close high low
-//
-//
-fn get_trading_window(deserilaized_res: PolygonResponse) -> Vec<Trade>{
+    for trade in &trades {
+        if trade.price > high {
+            high = trade.price;
+        }
+
+        if trade.price < low {
+            low = trade.price;
+        }
+    }
+
+    Candle {
+        open: trades[0 as usize].price,
+        close: trades[trades.len() as usize].price,
+        low,
+        high,
+    }
+}
+/// This function will return trades within an N second(s) window.
+fn get_trades_for_trading_window(
+    trading_window: u64,
+    deserilaized_res: PolygonResponse,
+) -> Vec<Trade> {
     let mut trades_in_window = Vec::<Trade>::new();
-    
-    // for trade in resullts we need 
-    // take first time stamp (use as zero))
-    // for every trade in the response that is less tham 30 seconds
-    // push to vector 
-    // evaluate vector for open close high and low for:
-    // open: first trade
-    // close: last trade
-    // high and low self explanatory
-    //
-    //
     let intial_time_stamp = deserilaized_res.results[0].participant_timestamp;
     for trade in deserilaized_res.results {
         let time_elapsed = Duration::from_nanos(intial_time_stamp - trade.participant_timestamp);
-        //println!("time elapsed since trade: {:?}", time_elapsed.as_secs());
-        if time_elapsed.as_secs() <= 30 {
+        if time_elapsed.as_secs() <= trading_window {
             trades_in_window.push(trade);
         }
     }
@@ -70,10 +73,11 @@ fn get_trading_window(deserilaized_res: PolygonResponse) -> Vec<Trade>{
     trades_in_window
 }
 
+fn get_candles_for_trading_day() -> Vec<Candle> {
+    unimplemented!()
+}
 
 // calc_time_elapsed: timestamp b - timestamp a
-
-
 
 /// This function is used to make asynchronous requests to specified Polygon.io API endpoints
 /// for query variables that are not being used , fill with and empty "" for the formatter
@@ -149,7 +153,7 @@ async fn main() -> Result<(), reqwest::Error> {
     dotenv::from_filename("config.env").ok();
     let reqwest_client = Client::new();
     let coin_type = "X:BTC-USD";
-    let polygon_api_key = std::env::var("POLYGON_API_KEY").expect("dotenv broke again... WTF");
+    let polygon_api_key = std::env::var("POLYGON_API_KEY").expect("dotenv broke again...");
     let deserialized_response = request_trade_data(
         &reqwest_client,
         "https://api.polygon.io/v3/trades/",
@@ -168,10 +172,14 @@ async fn main() -> Result<(), reqwest::Error> {
     page_gathering_queue.push_back(deserialized_response.next_url.clone().unwrap());
 
     let mut page_count = 0;
-    
-    let current_trading_window = get_trading_window(deserialized_response);
-  //  println!("breaks printing trades below!");    
-    println!("{:?} {}", current_trading_window, current_trading_window.len());
+
+    let current_trading_window = get_trades_for_trading_window(30, deserialized_response);
+    //  println!("breaks printing trades below!");
+    println!(
+        "{:?} {}",
+        current_trading_window,
+        current_trading_window.len()
+    );
     /*while !page_gathering_queue.is_empty() {
         // make the request
         // do something with trades[todo]
@@ -192,7 +200,6 @@ async fn main() -> Result<(), reqwest::Error> {
         // this is where we would manipulate trade data.
         page_gathering_queue.push_back(current_page_res.next_url.clone().unwrap());
     }*/
-
 
     Ok(())
 }
