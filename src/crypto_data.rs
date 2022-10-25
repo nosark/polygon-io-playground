@@ -123,35 +123,12 @@ fn querify_paramters(params: QueryParams<'_>, api_key: &String) -> String {
     full_url
 }
 
-// calc_time_elapsed: timestamp b - timestamp a
-
-/// This function is used to make asynchronous requests to specified Polygon.io API endpoints
-/// for query variables that are not being used , fill with and empty "" for the formatter
-///
-/// an example query for bitcoin would appear as follows:
-///
-///     request_trade_data(
-///         &some_client,
-///         "https://api.polygon.io/v3/trades/",
-///         "X:BTC-USD",
-///         "",
-///         "",
-///         "",
-///         api_key
-///     )?;
-///
-///
-///
-/// This call is made using no attributes for order, limit, or sort. This is a generic
-/// request. This will return either Ok(PolygonResponse) or an Err().
 pub async fn request_trade_data(
     client: &reqwest::Client,
     query_params: QueryParams<'_>,
     api_key: &String,
 ) -> Result<PolygonResponse, reqwest::Error> {
     let full_url = querify_paramters(query_params, api_key);
-    // after formatting string make request
-    // if request is successful Deserialize data and return the full response.
     let res = client.get(full_url).send().await?;
 
     match res.error_for_status() {

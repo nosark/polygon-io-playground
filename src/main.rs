@@ -20,8 +20,6 @@ async fn main() -> Result<(), reqwest::Error> {
     let deserialized_response =
         request_trade_data(&reqwest_client, query_params, &polygon_api_key).await?;
 
-    //now push next url to page_gathering_queue
-    //
     let mut page_gathering_queue = VecDeque::<String>::new();
     page_gathering_queue.push_back(deserialized_response.next_url.clone().unwrap());
 
