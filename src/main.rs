@@ -1,7 +1,4 @@
-use polygonio_rs::crypto_data::{ 
-    get_trades_for_trading_window,
-    request_trade_data,
-};
+use polygonio_rs::crypto_data::{get_trades_for_trading_window, request_trade_data, QueryParams};
 
 use reqwest::Client;
 use std::collections::VecDeque;
@@ -10,19 +7,18 @@ use std::collections::VecDeque;
 async fn main() -> Result<(), reqwest::Error> {
     dotenv::from_filename("config.env").ok();
     let reqwest_client = Client::new();
-    let coin_type = "X:BTC-USD";
-    let polygon_api_key = std::env::var("POLYGON_API_KEY").expect("dotenv broke again...");
-    let deserialized_response = request_trade_data(
-        &reqwest_client,
-        "https://api.polygon.io/v3/trades/",
-        coin_type,
-        "?timestamp=2021-09-03",
-        "",
-        "&limit=50000",
-        "&sort=timestamp&",
-        &polygon_api_key,
-    )
-    .await?;
+    let query_params = QueryParams {
+        base_url: "https://api.polygon.io/v3/trades/",
+        coin_type: "X:BTC-USD",
+        timestamp: "timestamp=2021-09-03",
+        order: "",
+        limit: "limit=50000",
+        sort: "",
+    };
+    let polygon_api_key = std::env::var("POLYGON_API_KEY")
+        .expect("Something went wrong while parsing the key from config file!");
+    let deserialized_response =
+        request_trade_data(&reqwest_client, query_params, &polygon_api_key).await?;
 
     //now push next url to page_gathering_queue
     //
@@ -37,6 +33,8 @@ async fn main() -> Result<(), reqwest::Error> {
         current_trading_window,
         current_trading_window.len()
     );
+
+    //TODO: create Aggregator and move pagination logic to crypto_data.rs
     /*while !page_gathering_queue.is_empty() {
         // make the request
         // do something with trades[todo]
