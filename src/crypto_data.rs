@@ -184,4 +184,27 @@ mod tests {
         assert_eq!(test_candle.low, Decimal::from(1));
         assert_eq!(test_candle.high, Decimal::from(3));
     }
+
+    #[actix_rt::test]
+    async fn test_get_trades_for_trading_window() -> Result<(), reqwest::Error> { 
+        dotenv::from_filename("config.env").ok();
+        let client = reqwest::Client::new();
+
+        let polygon_api_key = std::env::var("POLYGON_API_KEY")
+            .expect("Something went wrong while parsing the key from config file!");
+        let query_params = QueryParams {
+            base_url: "https://api.polygon.io/v3/trades/",
+            coin_type: "X:BTC-USD",
+            timestamp: "timestamp=2021-09-03",
+            order: "",
+            limit: "limit=50000",
+            sort: "",
+        };
+
+        let res: PolygonResponse = request_trade_data(&client, query_params, &polygon_api_key)
+            .await?;
+        let trades = get_trades_for_trading_window(30, res);
+        assert_eq!(trades.len(), 125); 
+        Ok(())
+    }
 }
