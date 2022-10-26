@@ -27,7 +27,7 @@ pub struct PolygonResponse {
 }
 
 #[allow(dead_code)]
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Candle {
     open: Decimal,
     close: Decimal,
@@ -77,7 +77,7 @@ pub fn create_candle_from_trades(trades: Vec<Trade>) -> Candle {
 
     Candle {
         open: trades[0 as usize].price,
-        close: trades[trades.len() as usize].price,
+        close: trades[trades.len() - 1 as usize].price,
         low,
         high,
     }
@@ -123,6 +123,7 @@ fn querify_paramters(params: QueryParams<'_>, api_key: &String) -> String {
     full_url
 }
 
+#[allow(dead_code)]
 pub async fn request_trade_data(
     client: &reqwest::Client,
     query_params: QueryParams<'_>,
@@ -143,6 +144,7 @@ pub async fn request_trade_data(
     }
 }
 
+#[allow(dead_code)]
 async fn get_next_page_data(
     client: &reqwest::Client,
     page_url: &str,
@@ -159,5 +161,27 @@ async fn get_next_page_data(
             println!("Something went wrong, Error: {}", err);
             return Err(err);
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    
+    #[test]
+    fn test_create_candle_from_trades() {
+        println!("Starting candle test...");        
+        let sample_trades: Vec<Trade> = vec![ 
+            Trade { conditions: vec![1], exchange: 1, id: Some(String::from("123")), participant_timestamp: 9237019287301928370, price: Decimal::from(1), size: Decimal::from(1)},
+            Trade { conditions: vec![1], exchange: 1, id: Some(String::from("124")), participant_timestamp: 9237019287301928380, price: Decimal::from(2), size: Decimal::from(1)},
+            Trade { conditions: vec![1], exchange: 1, id: Some(String::from("125")), participant_timestamp: 9237019287301928390, price: Decimal::from(3), size: Decimal::from(1)}
+        ];
+        let test_candle = create_candle_from_trades(sample_trades);
+        println!("{:?}", test_candle);
+
+        assert_eq!(test_candle.open, Decimal::from(1));
+        assert_eq!(test_candle.close, Decimal::from(3));
+        assert_eq!(test_candle.low, Decimal::from(1));
+        assert_eq!(test_candle.high, Decimal::from(3));
     }
 }

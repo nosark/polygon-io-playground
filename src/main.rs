@@ -23,8 +23,6 @@ async fn main() -> Result<(), reqwest::Error> {
     let mut page_gathering_queue = VecDeque::<String>::new();
     page_gathering_queue.push_back(deserialized_response.next_url.clone().unwrap());
 
-    let mut page_count = 0;
-
     let current_trading_window = get_trades_for_trading_window(30, deserialized_response);
     println!(
         "{:?} {}",
