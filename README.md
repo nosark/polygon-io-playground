@@ -1,2 +1,4 @@
 # polygon-io-playground
-playing with a bunch of features from the polygon.io api 
+Experimenting with candle data aggregation and pagination using rust.
+
+may turn this into an open sourced polygon io rust client.
