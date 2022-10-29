@@ -6,6 +6,12 @@ use std::ops::Index;
 use std::time::Duration;
 
 #[allow(dead_code)]
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Aggregator {
+    candles: Vec<Candle>,
+}
+
+#[allow(dead_code)]
 #[derive(Deserialize, Debug)]
 pub struct Trade {
     conditions: Vec<i64>,
@@ -35,132 +41,59 @@ pub struct Candle {
     high: Decimal,
 }
 
-#[allow(dead_code)]
-#[derive(Debug, Serialize, Deserialize)]
-pub struct QueryParams<'a> {
-    pub base_url: &'a str,
-    pub coin_type: &'a str,
-    pub timestamp: &'a str,
-    pub order: &'a str,
-    pub limit: &'a str,
-    pub sort: &'a str,
-}
+pub trait Crypto {
+    fn create_candle_from_trades(trades: Vec<Trade>) -> Candle {
+        let mut high = Decimal::MIN;
+        let mut low = Decimal::MAX;
 
-impl<'a> Index<usize> for QueryParams<'a> {
-    type Output = str;
-    fn index(&self, index: usize) -> &'a str {
-        match index {
-            0 => &self.base_url,
-            1 => &self.coin_type,
-            2 => &self.timestamp,
-            3 => &self.order,
-            4 => &self.limit,
-            5 => &self.sort,
-            n => panic!("Invalid QueryParams index: {}", n),
+        for trade in &trades {
+            if trade.price > high {
+                high = trade.price;
+            }
+
+            if trade.price < low {
+                low = trade.price;
+            }
+        }
+
+        Candle {
+            open: trades[0 as usize].price,
+            close: trades[trades.len() - 1 as usize].price,
+            low,
+            high,
         }
     }
-}
-
-pub fn create_candle_from_trades(trades: Vec<Trade>) -> Candle {
-    let mut high = Decimal::MIN;
-    let mut low = Decimal::MAX;
-
-    for trade in &trades {
-        if trade.price > high {
-            high = trade.price;
+    /// This function will return trades within an N second(s) window.
+    fn get_trades_for_trading_window(
+        trading_window: u64,
+        deserilaized_res: PolygonResponse,
+    ) -> Vec<Trade> {
+        let mut trades_in_window = Vec::<Trade>::new();
+        let intial_time_stamp = deserilaized_res.results[0].participant_timestamp;
+        for trade in deserilaized_res.results {
+            let time_elapsed =
+                Duration::from_nanos(intial_time_stamp - trade.participant_timestamp);
+            if time_elapsed.as_secs() <= trading_window {
+                trades_in_window.push(trade);
+            }
         }
 
-        if trade.price < low {
-            low = trade.price;
-        }
+        trades_in_window
     }
 
-    Candle {
-        open: trades[0 as usize].price,
-        close: trades[trades.len() - 1 as usize].price,
-        low,
-        high,
-    }
-}
-/// This function will return trades within an N second(s) window.
-pub fn get_trades_for_trading_window(
-    trading_window: u64,
-    deserilaized_res: PolygonResponse,
-) -> Vec<Trade> {
-    let mut trades_in_window = Vec::<Trade>::new();
-    let intial_time_stamp = deserilaized_res.results[0].participant_timestamp;
-    for trade in deserilaized_res.results {
-        let time_elapsed = Duration::from_nanos(intial_time_stamp - trade.participant_timestamp);
-        if time_elapsed.as_secs() <= trading_window {
-            trades_in_window.push(trade);
+    fn get_candles_for_trading_day(num_seconds: i32, res: PolygonResponse) -> Vec<Candle> {
+        let mut candles_for_day = Vec::<Candle>::new();
+        let trades_for_day = res.results;
+
+        //now iterate through all results grabbing for num seconds
+        for _i in 0..trades_for_day.len() {
+            // process trades for N sec window
+            // stop pointer
+            // create candle
+            //continue loop until end
+            // process next page with recursion or iteration...?
         }
-    }
-
-    trades_in_window
-}
-
-pub fn get_candles_for_trading_day() -> Vec<Candle> {
-    unimplemented!()
-}
-
-fn querify_paramters(params: QueryParams<'_>, api_key: &String) -> String {
-    let mut full_url = String::from("");
-    for i in 0..5 {
-        if i == 2 {
-            full_url.push_str("?");
-        }
-
-        full_url.push_str(&params[i]);
-
-        if i > 1 && params[i].len() > 0 {
-            full_url.push_str("&");
-        }
-    }
-
-    full_url.push_str("apiKey=");
-    full_url.push_str(api_key);
-
-    full_url
-}
-
-#[allow(dead_code)]
-pub async fn request_trade_data(
-    client: &reqwest::Client,
-    query_params: QueryParams<'_>,
-    api_key: &String,
-) -> Result<PolygonResponse, reqwest::Error> {
-    let full_url = querify_paramters(query_params, api_key);
-    let res = client.get(full_url).send().await?;
-
-    match res.error_for_status() {
-        Ok(res) => {
-            let deserialized_data = res.json::<PolygonResponse>().await?;
-            return Ok(deserialized_data);
-        }
-        Err(err) => {
-            println!("Error: {}", err);
-            return Err(err);
-        }
-    }
-}
-
-#[allow(dead_code)]
-async fn get_next_page_data(
-    client: &reqwest::Client,
-    page_url: &str,
-) -> Result<PolygonResponse, reqwest::Error> {
-    let res = client.get(page_url).send().await?;
-
-    match res.error_for_status() {
-        Ok(res) => {
-            let deserialized_res = res.json::<PolygonResponse>().await?;
-            return Ok(deserialized_res);
-        }
-
-        Err(err) => {
-            println!("Something went wrong, Error: {}", err);
-            return Err(err);
-        }
+        candles_for_day
     }
 }
 
