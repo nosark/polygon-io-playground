@@ -2,7 +2,6 @@ extern crate dotenv;
 use reqwest::Client;
 use rust_decimal::prelude::*;
 use serde::{Deserialize, Serialize};
-use std::ops::Index;
 use std::time::Duration;
 
 #[allow(dead_code)]
@@ -100,6 +99,7 @@ pub trait Crypto {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::polygon_client::{Polygon, QueryParams};
 
     #[test]
     fn test_create_candle_from_trades() {
@@ -130,7 +130,7 @@ mod tests {
                 size: Decimal::from(1),
             },
         ];
-        let test_candle = create_candle_from_trades(sample_trades);
+        let test_candle = Polygon::create_candle_from_trades(sample_trades);
         println!("{:?}", test_candle);
 
         assert_eq!(test_candle.open, Decimal::from(1));
@@ -142,10 +142,10 @@ mod tests {
     #[actix_rt::test]
     async fn test_get_trades_for_trading_window() -> Result<(), reqwest::Error> {
         dotenv::from_filename("config.env").ok();
-        let client = reqwest::Client::new();
 
         let polygon_api_key = std::env::var("POLYGON_API_KEY")
-            .expect("Something went wrong while parsing the key from config file!");
+            .expect("dotenv failed to load config variable API_KEY");
+        let polygon = Polygon::new(Some(polygon_api_key));
         let query_params = QueryParams {
             base_url: "https://api.polygon.io/v3/trades/",
             coin_type: "X:BTC-USD",
@@ -155,9 +155,8 @@ mod tests {
             sort: "",
         };
 
-        let res: PolygonResponse =
-            request_trade_data(&client, query_params, &polygon_api_key).await?;
-        let trades = get_trades_for_trading_window(30, res);
+        let res: PolygonResponse = polygon.request_trade_data(query_params).await?;
+        let trades = Polygon::get_trades_for_trading_window(30, res);
         assert_eq!(trades.len(), 125);
         Ok(())
     }
