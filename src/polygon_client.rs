@@ -1,8 +1,7 @@
-use crate::crypto_data::{Crypto, PolygonResponse};
+use crate::crypto_data::{Candle, Crypto, PolygonResponse};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
-
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryParams<'a> {
@@ -28,8 +27,6 @@ impl<'a> Index<usize> for QueryParams<'a> {
         }
     }
 }
-
-impl Crypto for Polygon {}
 
 #[allow(dead_code)]
 pub struct Polygon {
@@ -102,3 +99,5 @@ impl Polygon {
         full_url
     }
 }
+
+impl Crypto for Polygon {}

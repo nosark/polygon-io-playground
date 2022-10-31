@@ -1,3 +1,4 @@
+use polygonio_rs::crypto_data::Crypto;
 use polygonio_rs::polygon_client::{Polygon, QueryParams};
 
 #[tokio::main]
@@ -15,7 +16,7 @@ async fn main() -> Result<(), reqwest::Error> {
         sort: "",
     };
     let deserialized_response = polygon.request_trade_data(query_params).await?;
-    //let candles_for_day = get_candles_for_trading_day(30, deserialized_response);
-    //println!("{:?}", candles_for_day);
+    let candles_for_day = polygon.get_candles_for_trading_day(30, deserialized_response);
+    println!("{:?}", candles_for_day);
     Ok(())
 }

@@ -1,5 +1,4 @@
 extern crate dotenv;
-use reqwest::Client;
 use rust_decimal::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
@@ -41,7 +40,7 @@ pub struct Candle {
 }
 
 pub trait Crypto {
-    fn create_candle_from_trades(trades: Vec<Trade>) -> Candle {
+    fn create_candle_from_trades(&self, trades: Vec<Trade>) -> Candle {
         let mut high = Decimal::MIN;
         let mut low = Decimal::MAX;
 
@@ -64,6 +63,7 @@ pub trait Crypto {
     }
     /// This function will return trades within an N second(s) window.
     fn get_trades_for_trading_window(
+        &self,
         trading_window: u64,
         deserilaized_res: PolygonResponse,
     ) -> Vec<Trade> {
@@ -80,10 +80,10 @@ pub trait Crypto {
         trades_in_window
     }
 
-    fn get_candles_for_trading_day(num_seconds: i32, res: PolygonResponse) -> Vec<Candle> {
+    fn get_candles_for_trading_day(&self, num_seconds: i32, res: PolygonResponse) -> Vec<Candle> {
         let mut candles_for_day = Vec::<Candle>::new();
         let trades_for_day = res.results;
-
+        // TODO:
         //now iterate through all results grabbing for num seconds
         for _i in 0..trades_for_day.len() {
             // process trades for N sec window
@@ -130,7 +130,9 @@ mod tests {
                 size: Decimal::from(1),
             },
         ];
-        let test_candle = Polygon::create_candle_from_trades(sample_trades);
+
+        let polygon = Polygon::new(Some(String::from("fake_api_key_no_reqeust_here")));
+        let test_candle = polygon.create_candle_from_trades(sample_trades);
         println!("{:?}", test_candle);
 
         assert_eq!(test_candle.open, Decimal::from(1));
@@ -156,7 +158,7 @@ mod tests {
         };
 
         let res: PolygonResponse = polygon.request_trade_data(query_params).await?;
-        let trades = Polygon::get_trades_for_trading_window(30, res);
+        let trades = polygon.get_trades_for_trading_window(30, res);
         assert_eq!(trades.len(), 125);
         Ok(())
     }
