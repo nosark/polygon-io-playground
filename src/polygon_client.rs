@@ -1,4 +1,4 @@
-use crate::crypto_data::{Candle, Crypto, PolygonResponse};
+use crate::crypto_data::{Crypto, PolygonResponse};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
@@ -17,12 +17,12 @@ impl<'a> Index<usize> for QueryParams<'a> {
     type Output = str;
     fn index(&self, index: usize) -> &'a str {
         match index {
-            0 => &self.base_url,
-            1 => &self.coin_type,
-            2 => &self.timestamp,
-            3 => &self.order,
-            4 => &self.limit,
-            5 => &self.sort,
+            0 => self.base_url,
+            1 => self.coin_type,
+            2 => self.timestamp,
+            3 => self.order,
+            4 => self.limit,
+            5 => self.sort,
             n => panic!("Invalid QueryParams index: {}", n),
         }
     }
@@ -53,11 +53,11 @@ impl Polygon {
         match res.error_for_status() {
             Ok(res) => {
                 let deserialized_data = res.json::<PolygonResponse>().await?;
-                return Ok(deserialized_data);
+                Ok(deserialized_data)
             }
             Err(err) => {
                 println!("Error: {}", err);
-                return Err(err);
+                Err(err)
             }
         }
     }
@@ -69,12 +69,12 @@ impl Polygon {
         match res.error_for_status() {
             Ok(res) => {
                 let deserialized_res = res.json::<PolygonResponse>().await?;
-                return Ok(deserialized_res);
+                Ok(deserialized_res)
             }
 
             Err(err) => {
                 println!("Something went wrong, Error: {}", err);
-                return Err(err);
+                Err(err)
             }
         }
     }
@@ -83,13 +83,13 @@ impl Polygon {
         let mut full_url = String::from("");
         for i in 0..5 {
             if i == 2 {
-                full_url.push_str("?");
+                full_url.push('?');
             }
 
             full_url.push_str(&params[i]);
 
             if i > 1 && params[i].len() > 0 {
-                full_url.push_str("&");
+                full_url.push('&');
             }
         }
 

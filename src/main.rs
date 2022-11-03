@@ -12,7 +12,7 @@ async fn main() -> Result<(), reqwest::Error> {
         coin_type: "X:BTC-USD",
         timestamp: "timestamp=2021-09-03",
         order: "",
-        limit: "limit=50000",
+        limit: "limit=126",
         sort: "",
     };
     let deserialized_response = polygon.request_trade_data(query_params).await?;
