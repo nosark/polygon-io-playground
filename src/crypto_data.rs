@@ -168,7 +168,7 @@ mod tests {
             sort: "",
         };
 
-        let res: PolygonResponse = polygon.request_trade_data(query_params).await?;
+        let res: PolygonResponse = polygon.get(query_params).await?;
         let trades = polygon.get_trades_for_trading_window(30, res);
         assert_eq!(trades.len(), 125);
         Ok(())

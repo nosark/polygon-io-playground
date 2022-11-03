@@ -4,6 +4,7 @@ use std::ops::Index;
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryParams<'a> {
+    /// 
     pub base_url: &'a str,
     pub coin_type: &'a str,
     pub timestamp: &'a str,
@@ -42,7 +43,7 @@ impl Polygon {
     }
 
     #[allow(dead_code)]
-    pub async fn request_trade_data(
+    pub async fn get(
         &self,
         query_params: QueryParams<'_>,
     ) -> Result<PolygonResponse, reqwest::Error> {
