@@ -1,5 +1,4 @@
 use crate::crypto_data::{Crypto, PolygonResponse};
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
 #[allow(dead_code)]
@@ -47,7 +46,7 @@ impl Polygon {
         &self,
         query_params: QueryParams<'_>,
     ) -> Result<PolygonResponse, reqwest::Error> {
-        let full_url = Self::querify_paramters(&self, query_params);
+        let full_url = Self::querify_paramters(self, query_params);
         let res = self.client.get(full_url).send().await?;
 
         match res.error_for_status() {

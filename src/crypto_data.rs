@@ -55,8 +55,8 @@ pub trait Crypto {
         }
 
         Candle {
-            open: trades[0 as usize].price,
-            close: trades[trades.len() - 1 as usize].price,
+            open: trades[0].price,
+            close: trades[trades.len() - 1].price,
             low,
             high,
         }
