@@ -10,7 +10,7 @@ pub struct Aggregator {
 }
 
 #[allow(dead_code)]
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 pub struct Trade {
     conditions: Vec<i64>,
     exchange: i64,
@@ -31,7 +31,7 @@ pub struct PolygonResponse {
 }
 
 #[allow(dead_code)]
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
 pub struct Candle {
     open: Decimal,
     close: Decimal,
@@ -40,11 +40,11 @@ pub struct Candle {
 }
 
 pub trait Crypto {
-    fn create_candle_from_trades(&self, trades: Vec<Trade>) -> Candle {
+    fn create_candle_from_trades(&self, trades: &Vec<&Trade>) -> Candle {
         let mut high = Decimal::MIN;
         let mut low = Decimal::MAX;
 
-        for trade in &trades {
+        for trade in trades {
             if trade.price > high {
                 high = trade.price;
             }
@@ -80,17 +80,26 @@ pub trait Crypto {
         trades_in_window
     }
 
-    fn get_candles_for_trading_day(&self, num_seconds: i32, res: PolygonResponse) -> Vec<Candle> {
+    fn get_candles_for_trading_day(&self, num_seconds: u64, res: PolygonResponse) -> Vec<Candle> {
         let mut candles_for_day = Vec::<Candle>::new();
         let trades_for_day = res.results;
-        // TODO:
+        let mut trading_window = Vec::<&Trade>::new();
+
+        let mut initial_time_stamp = trades_for_day[0].participant_timestamp;
         //now iterate through all results grabbing for num seconds
-        for _i in 0..trades_for_day.len() {
-            // process trades for N sec window
-            // stop pointer
-            // create candle
-            //continue loop until end
-            // process next page with recursion or iteration...?
+        for i in 0..trades_for_day.len() {
+            let time_elapsed =
+                Duration::from_nanos(initial_time_stamp - trades_for_day[i].participant_timestamp);
+            if time_elapsed.as_secs() <= num_seconds {
+                trading_window.push(&trades_for_day[i]);
+            } else {
+                //create candle from trading_window and reset time stamp for new time window
+                let current_candle = self.create_candle_from_trades(&trading_window);
+                candles_for_day.push(current_candle);
+
+                initial_time_stamp = trades_for_day[i].participant_timestamp; // reset initial_time_stamp
+                trading_window.clear(); // clear trade buffer
+            }
         }
         candles_for_day
     }
@@ -104,35 +113,37 @@ mod tests {
     #[test]
     fn test_create_candle_from_trades() {
         println!("Starting candle test...");
-        let sample_trades: Vec<Trade> = vec![
-            Trade {
-                conditions: vec![1],
-                exchange: 1,
-                id: Some(String::from("123")),
-                participant_timestamp: 9237019287301928370,
-                price: Decimal::from(1),
-                size: Decimal::from(1),
-            },
-            Trade {
-                conditions: vec![1],
-                exchange: 1,
-                id: Some(String::from("124")),
-                participant_timestamp: 9237019287301928380,
-                price: Decimal::from(2),
-                size: Decimal::from(1),
-            },
-            Trade {
-                conditions: vec![1],
-                exchange: 1,
-                id: Some(String::from("125")),
-                participant_timestamp: 9237019287301928390,
-                price: Decimal::from(3),
-                size: Decimal::from(1),
-            },
-        ];
+        let mut sample_trades = Vec::<&Trade>::new();
+        let trade_one = Trade {
+            conditions: vec![1],
+            exchange: 1,
+            id: Some(String::from("123")),
+            participant_timestamp: 9237019287301928370,
+            price: Decimal::from(1),
+            size: Decimal::from(1),
+        };
+        let trade_two = Trade {
+            conditions: vec![1],
+            exchange: 1,
+            id: Some(String::from("124")),
+            participant_timestamp: 9237019287301928380,
+            price: Decimal::from(2),
+            size: Decimal::from(1),
+        };
+        let trade_three = Trade {
+            conditions: vec![1],
+            exchange: 1,
+            id: Some(String::from("125")),
+            participant_timestamp: 9237019287301928390,
+            price: Decimal::from(3),
+            size: Decimal::from(1),
+        };
+        sample_trades.push(&trade_one);
+        sample_trades.push(&trade_two);
+        sample_trades.push(&trade_three);
 
         let polygon = Polygon::new(Some(String::from("fake_api_key_no_reqeust_here")));
-        let test_candle = polygon.create_candle_from_trades(sample_trades);
+        let test_candle = polygon.create_candle_from_trades(&sample_trades);
         println!("{:?}", test_candle);
 
         assert_eq!(test_candle.open, Decimal::from(1));

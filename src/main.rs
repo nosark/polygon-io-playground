@@ -17,6 +17,7 @@ async fn main() -> Result<(), reqwest::Error> {
     };
     let deserialized_response = polygon.request_trade_data(query_params).await?;
     let candles_for_day = polygon.get_candles_for_trading_day(30, deserialized_response);
-    println!("{:?}", candles_for_day);
+    println!("{:#?} ", candles_for_day);
+    println!("{}", candles_for_day.len());
     Ok(())
 }
