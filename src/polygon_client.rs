@@ -4,12 +4,17 @@ use std::ops::Index;
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryParams<'a> {
-    /// 
+    /// url for polygon feature endpoint 
     pub base_url: &'a str,
+    /// coin to currency conversion tyoe that you'd like data for
     pub coin_type: &'a str,
+    /// date timestamp YYYY-MM-DD
     pub timestamp: &'a str,
+    /// order the data in ascending (asc) or descending (desc)
     pub order: &'a str,
+    /// the number of results per paginated response
     pub limit: &'a str,
+    /// sort the results by X
     pub sort: &'a str,
 }
 

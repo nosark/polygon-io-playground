@@ -84,7 +84,7 @@ pub trait Crypto {
         let mut candles_for_day = Vec::<Candle>::new();
         let trades_for_day = res.results;
         let mut trading_window = Vec::<&Trade>::new();
-
+        let mut trades_marker = 0;
         let mut initial_time_stamp = trades_for_day[0].participant_timestamp;
         //now iterate through all results grabbing for num seconds
         for i in 0..trades_for_day.len() {
@@ -100,7 +100,10 @@ pub trait Crypto {
                 initial_time_stamp = trades_for_day[i].participant_timestamp; // reset initial_time_stamp
                 trading_window.clear(); // clear trade buffer
             }
+            trades_marker = i;
         }
+        
+        println!("{}", trades_marker);
         candles_for_day
     }
 }
