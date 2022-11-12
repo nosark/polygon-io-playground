@@ -25,5 +25,6 @@ rust_decimal_macros = "1.26.1"
 crossbeam = "0.8.2"
 actix-web = "4.2.1"
 actix-rt = "2.7.0"
+async-trait = "0.1.58"
 
 

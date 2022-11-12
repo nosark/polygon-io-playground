@@ -1,10 +1,12 @@
-use crate::crypto_data::{Crypto, PolygonResponse};
+use crate::crypto_data::Crypto;
+use reqwest::Response;
 use serde::{Deserialize, Serialize};
 use std::ops::Index;
+
 #[allow(dead_code)]
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QueryParams<'a> {
-    /// url for polygon feature endpoint 
+    /// url for polygon feature endpoint
     pub base_url: &'a str,
     /// coin to currency conversion tyoe that you'd like data for
     pub coin_type: &'a str,
@@ -48,37 +50,14 @@ impl Polygon {
     }
 
     #[allow(dead_code)]
-    pub async fn get(
-        &self,
-        query_params: QueryParams<'_>,
-    ) -> Result<PolygonResponse, reqwest::Error> {
+    pub async fn get(&self, query_params: QueryParams<'_>) -> Result<Response, reqwest::Error> {
         let full_url = Self::querify_paramters(self, query_params);
         let res = self.client.get(full_url).send().await?;
 
         match res.error_for_status() {
-            Ok(res) => {
-                let deserialized_data = res.json::<PolygonResponse>().await?;
-                Ok(deserialized_data)
-            }
+            Ok(res) => Ok(res),
             Err(err) => {
                 println!("Error: {}", err);
-                Err(err)
-            }
-        }
-    }
-
-    #[allow(dead_code)]
-    async fn get_next_page_data(&self, page_url: &str) -> Result<PolygonResponse, reqwest::Error> {
-        let res = self.client.get(page_url).send().await?;
-
-        match res.error_for_status() {
-            Ok(res) => {
-                let deserialized_res = res.json::<PolygonResponse>().await?;
-                Ok(deserialized_res)
-            }
-
-            Err(err) => {
-                println!("Something went wrong, Error: {}", err);
                 Err(err)
             }
         }

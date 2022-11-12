@@ -1,4 +1,6 @@
-use polygonio_rs::crypto_data::Crypto;
+use std::collections::VecDeque;
+
+use polygonio_rs::crypto_data::{Candle, Crypto, Trade};
 use polygonio_rs::polygon_client::{Polygon, QueryParams};
 
 #[tokio::main]
@@ -15,9 +17,10 @@ async fn main() -> Result<(), reqwest::Error> {
         limit: "limit=50000",
         sort: "",
     };
-    let deserialized_response = polygon.get(query_params).await?;
-    let candles_for_day = polygon.get_candles_for_trading_day(30, deserialized_response);
-    println!("{:#?} ", candles_for_day);
-    println!("{}", candles_for_day.len());
+
+    let last_trade = polygon
+        .last_trade_for_crypto_pair(&polygon, "BTC", "USD")
+        .await?;
+    println!("{:#?}", last_trade);
     Ok(())
 }
