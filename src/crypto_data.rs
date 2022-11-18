@@ -1,8 +1,10 @@
 extern crate dotenv;
+use std::collections::HashMap;
 use crate::polygon_client::{Polygon, QueryParams};
 use async_trait::async_trait;
 use rust_decimal::prelude::*;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::time::Duration;
 
 #[allow(dead_code)]
@@ -54,6 +56,30 @@ pub struct Candle {
     high: Decimal,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct Results {
+    T: String,
+    c: Decimal,
+    h: Decimal,
+    l: Decimal,
+    o: Decimal,
+    t: u64,
+    v: Decimal,
+    vw: Decimal
+}
+
+#[derive(Deserialize, Debug)]
+pub struct PreviousClose {
+    ticker: String,
+    query_count: i64,
+    results_count: i64,
+    adjusted: bool,
+    results: HashMap<String, Value>,
+    status: String,
+    request_id: String,
+    count: i64,
+}
+
 #[async_trait]
 pub trait Crypto {
     async fn last_trade_for_crypto_pair(
@@ -63,16 +89,8 @@ pub trait Crypto {
         to: &str,
     ) -> Result<LastTradeCryptoPair, reqwest::Error> {
         let base_url = format!("https://api.polygon.io/v1/last/crypto/{}/{}", from, to);
-        let query_params = QueryParams {
-            base_url: base_url.as_str(),
-            coin_type: "",
-            timestamp: "",
-            order: "",
-            limit: "",
-            sort: "",
-        };
-
-        let result = client.get(query_params).await;
+        let mut query_params : QueryParams = QueryParams::new().add_base_url(&base_url);
+        let result = client.get(&query_params).await;
 
         match result {
             Ok(result) => {
@@ -84,6 +102,33 @@ pub trait Crypto {
                 Err(err)
             }
         }
+    }
+    async fn previous_close(&self, client: &Polygon, crypto_ticker: String, adjusted: bool) -> Result<PreviousClose, reqwest::Error> {
+        let was_adjustted;
+        match adjusted {
+            true => was_adjustted = String::from("true"),
+            false => was_adjustted = String::from("false"),
+        }
+            
+        let request_url = format!("https://api.polygon.io/v2/aggs/ticker/{}/prev", crypto_ticker);
+        let adj = format!("adjusted={}", was_adjustted);
+        let query_params: QueryParams = QueryParams::new().add_crypto_ticker(&crypto_ticker);
+        let res = client.get(&query_params).await;
+        match res {
+            Ok(res) => {
+                let deserialized_res = res.json::<PreviousClose>().await?;
+                Ok(deserialized_res)
+            },
+
+            Err(err) => {
+                println!("Error: {}", err);
+                Err(err)
+            },
+        }
+    }   
+
+    async fn trades(&self, crypto_ticker: String, timestamp: String, order: String, limit: i32, sort: String) -> Trades {
+        unimplemented!()
     }
 
     fn create_candle_from_trades(&self, trades: &Vec<Trade>) -> Candle {
